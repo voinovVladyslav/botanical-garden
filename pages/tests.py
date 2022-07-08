@@ -1,12 +1,14 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
+import shutil
 import os
 
 from news.models import News
 from botanical_garden.settings import BASE_DIR
 from excursion.models import Excursion
 from accounts.models import Customer
+from news.tests import TEST_DIR
 
 
 # Create your tests here.
@@ -36,6 +38,7 @@ class HomePageTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'pages/main.html')
 
+    @override_settings(MEDIA_ROOT=(TEST_DIR))
     def test_page_displays_news(self):
         news1 = self.create_news_objects('title1')
         news2 = self.create_news_objects('title2')
@@ -45,6 +48,7 @@ class HomePageTest(TestCase):
         self.assertContains(response, news1)
         self.assertContains(response, news2)
         
+    @override_settings(MEDIA_ROOT=(TEST_DIR))
     def test_displays_two_latest_news(self):
         news1 = self.create_news_objects('title1')
         news2 = self.create_news_objects('title2')
@@ -91,3 +95,11 @@ class StructurePageTest(TestCase):
         response = self.client.get('/structure')
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'pages/structure.html')
+
+
+def tearDownModule():
+    print("\nDeleting temporary files in pages module\n")
+    try:
+        shutil.rmtree(TEST_DIR)
+    except OSError:
+        pass

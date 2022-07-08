@@ -1,13 +1,15 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+import shutil
 import os
 
 from news.models import News
 from botanical_garden.settings import BASE_DIR
 from accounts.models import Customer
 
+TEST_DIR = os.path.join(BASE_DIR, 'temp')
 
 class NewsAllPageTest(TestCase):
     def create_news_objects(self, news_title):
@@ -24,6 +26,7 @@ class NewsAllPageTest(TestCase):
         )
         return news
 
+    @override_settings(MEDIA_ROOT=(TEST_DIR))
     def test_page_displays_all_news(self):
         news1 = self.create_news_objects('title1')
         news2 = self.create_news_objects('title2')
@@ -34,6 +37,7 @@ class NewsAllPageTest(TestCase):
 
 
 class PermissionsTest(TestCase):
+    @override_settings(MEDIA_ROOT=(TEST_DIR))
     def create_news_objects(self, news_title):
         test_img_path = os.path.join(BASE_DIR, 'botanical_garden/static/test_img/welcome-cat.jpg')
         news = News.objects.create(
@@ -75,6 +79,7 @@ class PermissionsTest(TestCase):
         self.client.force_login(self.manager)
 
         
+    @override_settings(MEDIA_ROOT=(TEST_DIR))
     def test_anonymous_user_access(self):
         news1 = self.create_news_objects('title1')
         all_news_response = self.client.get('/news/')
@@ -89,6 +94,7 @@ class PermissionsTest(TestCase):
         self.assertEqual(update_news_response.status_code, 403)
         self.assertEqual(delete_news_response.status_code, 403)
 
+    @override_settings(MEDIA_ROOT=(TEST_DIR))
     def test_user_access(self):
         news1 = self.create_news_objects('title1')
         self.loginUser()
@@ -104,6 +110,7 @@ class PermissionsTest(TestCase):
         self.assertEqual(update_news_response.status_code, 403)
         self.assertEqual(delete_news_response.status_code, 403)
 
+    @override_settings(MEDIA_ROOT=(TEST_DIR))
     def test_manager_access(self):
         news1 = self.create_news_objects('title1')
         self.loginManager()
@@ -118,3 +125,10 @@ class PermissionsTest(TestCase):
         self.assertEqual(create_news_response.status_code, 200)
         self.assertEqual(update_news_response.status_code, 200)
         self.assertEqual(delete_news_response.status_code, 200)
+
+def tearDownModule():
+    print("\nDeleting temporary files in news module\n")
+    try:
+        shutil.rmtree(TEST_DIR)
+    except OSError:
+        pass
